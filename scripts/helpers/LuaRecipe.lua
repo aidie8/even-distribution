@@ -6,7 +6,7 @@ local _ = scripts.helpers.on
 function recipe:ingredientcount(item) -- get count of a specific item in recipe ingredients
     if self:is("valid") then
 		for __,ingredient in pairs(self.ingredients) do
-			if ingredient.name == item then return ingredient.amount end
+			if ingredient.name == item and ingredient.quality == item.quality then return ingredient.amount end
 		end
     end
     

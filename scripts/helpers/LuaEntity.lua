@@ -12,7 +12,7 @@ function entity:isIgnored(player)
 end
 
 function entity:recipe()
-	return _(self.get_recipe() or (self.type == "furnace" and self.previous_recipe.name))
+	return _(self.get_recipe() or ((self.type == "furnace" and self.previous_recipe) and self.previous_recipe.name))
 end
 
 function entity:recipeQuality()

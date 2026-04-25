@@ -42,9 +42,7 @@ function control:logisticSlots() -- fetch all requests as a dict[name -> Compile
 
         if filters then
             _(filters):each(function(__, filter)
-                if filter and filter.name and (filter.quality == nil or filter.quality == "normal") then
-                    logisticSlots[filter.name] = filter
-                end
+                    logisticSlots[{filter.name,filter.quality}] = filter
             end)
         end
     end
@@ -52,11 +50,11 @@ function control:logisticSlots() -- fetch all requests as a dict[name -> Compile
 	return logisticSlots
 end
 
-function control:itemcount(...)
+function control:itemcount(item,takeFromInv, takeFromCar)
     if self.is_player() then 
-        return self:playeritemcount(...) 
+        return self:playeritemcount(item,takeFromInv,takeFromCar) 
     else
-        return self.get_item_count(...)
+        return self.get_item_count(item)
     end
 end
 
@@ -117,21 +115,20 @@ function control:contents(name)
     local contents = inv.get_contents()
     local contents_converted = {}
     for __, content in pairs(contents) do
-        if content.quality == "normal" then
-            contents_converted[content.name] = content.count
-        end
+            contents_converted[{name = content.name,quality = content.quality}] = content.count
     end
+
     return contents_converted
 end
 
-local function insert(self, name, item, amount)
+local function insert(self, name, item, amount,quality)
     if amount <= 0 then return 0 end
     local inv = self:inventory(name)
     if inv then
         -- inv.sort_and_merge()
-        local inserted = inv.insert{ name = item, count = amount }
+        local inserted = inv.insert{ name = item, count = amount,quality = quality }
         if inserted < amount then  -- retry for things like furnace ingredients (can be overfilled)
-            inserted = inserted + inv.insert{ name = item, count = amount - inserted }
+            inserted = inserted + inv.insert{ name = item, count = amount - inserted,quality = quality }
         end
         return inserted
     end
@@ -139,7 +136,7 @@ local function insert(self, name, item, amount)
 end
 
 -- priority insert with fuel and ammo limits
-function control:customInsert(player, item, amount, takenFromCar, takenFromTrash, replaceItems, useFuelLimit, useAmmoLimit, useRequestLimit, allowed)
+function control:customInsert(player, item, amount, takenFromCar, takenFromTrash, replaceItems, useFuelLimit, useAmmoLimit, useRequestLimit, allowed,quality)
     if amount <= 0 then return 0 end
 
     local inserted = 0
@@ -173,7 +170,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                     while limit > 0 do
                         local stack = inv.find_item_stack(inferiorFuel.name)
                         local returnCount = stack and stack.count or 0
-                        if stack and stack.set_stack{ name = item, count = limit } then
+                        if stack and stack.set_stack{ name = item, count = limit,quality = stack.quality } then
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
@@ -183,7 +180,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                     end
 
                     if returnToPlayer > 0 then
-                        player:returnItems(inferiorFuel.name, returnToPlayer, takenFromCar, takenFromTrash)
+                        player:returnItems(inferiorFuel.name, returnToPlayer, takenFromCar, takenFromTrash,inferiorFuel.quality)
                     end
                 end
             end
@@ -211,7 +208,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                     while limit > 0 do
                         local stack = inv.find_item_stack(inferiorAmmo.name)
                         local returnCount = stack and stack.count or 0
-                        if stack and stack.set_stack{ name = item, count = limit } then
+                        if stack and stack.set_stack{ name = item, count = limit,quality = stack.quality } then
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
@@ -221,7 +218,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                     end
                     
                     if returnToPlayer > 0 then
-                        player:returnItems(inferiorAmmo.name, returnToPlayer, takenFromCar, takenFromTrash)
+                        player:returnItems(inferiorAmmo.name, returnToPlayer, takenFromCar, takenFromTrash,inferiorAmmo.quality)
                     end
                 end
             end
@@ -233,7 +230,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
     
     if amount <= 0 then return inserted end
     if allowed.input then
-        local insertedHere = insert(self, "input", item, amount)
+        local insertedHere = insert(self, "input", item, amount, quality)
         inserted = inserted + insertedHere
         amount = amount - insertedHere
         if insertedHere > 0 then allowed.main = false end
@@ -241,14 +238,14 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
     
     if amount <= 0 then return inserted end
     if allowed.output and self:recipe():hasProduct(item) then
-        local insertedHere = insert(self, "output", item, amount)
+        local insertedHere = insert(self, "output", item, amount, quality)
         inserted = inserted + insertedHere
         amount = amount - insertedHere
 	end
 
     if amount <= 0 then return inserted end
     if allowed.modules then
-        local insertedHere = insert(self, "modules", item, amount)
+        local insertedHere = insert(self, "modules", item, amount, quality)
         inserted = inserted + insertedHere
         amount = amount - insertedHere
         if insertedHere > 0 then allowed.main = false end
@@ -256,12 +253,12 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
 
     if allowed.roboport and self.type == "roboport" then
         if amount <= 0 then return inserted end
-        local insertedHere = insert(self, "roboport_robot", item, amount)
+        local insertedHere = insert(self, "roboport_robot", item, amount, quality)
         inserted = inserted + insertedHere
         amount = amount - insertedHere
 
         if amount <= 0 then return inserted end
-        insertedHere = insert(self, "roboport_material", item, amount)
+        insertedHere = insert(self, "roboport_material", item, amount, quality)
         inserted = inserted + insertedHere
         amount = amount - insertedHere
     end
@@ -269,7 +266,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
     if amount <= 0 then return inserted end
     if allowed.main then
         local limit = useRequestLimit and math.min(amount, math.max(0, self:remainingRequest(item))) or amount
-        local insertedHere = insert(self, "main", item, limit)
+        local insertedHere = insert(self, "main", item, limit, quality)
         
         inserted = inserted + insertedHere
         amount = amount - insertedHere

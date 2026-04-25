@@ -16,8 +16,9 @@ function this.on_inventory_cleanup(event)
 	local entities = _(this.getEntities(area, player))  ; if entities:is("empty") then return end
 	local dropToChests = player:setting("dropTrashToChests")
 	local dropToOutput = player:setting("dropTrashToOutput")
-
+	dlog("Cleanup")
 	if player:setting("distributionMode") == "distribute" then
+		dlog("Distribute")
 		this.distributeItems(player, entities, items, dropToChests, dropToOutput)
 	else
 		this.balanceItems(player, entities, items, dropToChests, dropToOutput)
@@ -28,15 +29,19 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 	local offY, marked = 0, metatables.new("entityAsIndex")
 	
 	items:each(function(item, totalItems)
-
+		dlog("item")
+		dlog(item)
 		local entitiesToProcess = this.filterEntities(entities, item, dropToChests, dropToOutput)
-		
+		dlog("EntitiesToProcess" .. #entitiesToProcess)
 		if #entitiesToProcess > 0 then
 			local itemCounts = metatables.new("entityAsIndex")
-			totalItems = player:removeItems(item, totalItems, true, false, true)
+			totalItems = player:removeItems(item.name, totalItems, true, false, true,item.quality)
 
 			_(entitiesToProcess):each(function(entity)
 				local count = entity:itemcount(item)
+				dlog("Item Name ".. item.name)
+				dlog("Item count ".. count)
+				dlog("Item quality ".. item.quality)
 				itemCounts[entity] = {
 					original = count,
 					current = count,
@@ -50,7 +55,9 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 				i = i + 1
 
 				util.distribute(entitiesToProcess, totalItems, function(entity, amount)
-
+					dlog("Distribute Amount ".. amount)
+					dlog("For Item ".. item.name)
+					dlog("of quality ".. item.quality)
 					if amount > 0 then
 						local itemCount = itemCounts[entity]
 						local itemsInserted = this.insert(player, entity, item, amount)
@@ -61,7 +68,7 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 						local failedToInsert = amount - itemsInserted
 						if failedToInsert > 0 then
 							if itemCount.current ~= itemCount.original then
-								entity:spawnDistributionText(player,item, itemCount.current - itemCount.original, offY)
+								entity:spawnDistributionText(player,item.name, itemCount.current - itemCount.original, offY)
 								if not marked[entity] then
 									entity:mark(player)
 									marked[entity] = true
@@ -78,7 +85,7 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 				local itemCount = itemCounts[entity]
 				local amount = itemCount.current - itemCount.original
 				if amount ~= 0 then
-					entity:spawnDistributionText(player,item, amount, offY)
+					entity:spawnDistributionText(player,item.name, amount, offY)
 					if not marked[entity] then
 						entity:mark(player)
 						marked[entity] = true
@@ -87,7 +94,7 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 			end)
 
 			if totalItems > 0 then
-				player:returnItems(item, totalItems, false, true)
+				player:returnItems(item, totalItems, false, true,item.quality)
 			end
 
 			offY = offY - 0.5
@@ -99,19 +106,19 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 	local offY, marked = 0, metatables.new("entityAsIndex")
 
 	items:each(function(item, totalItems)
-
+		dlog("Item ".. item)
 		local entitiesToProcess = this.filterEntities(entities, item, dropToChests, dropToOutput)
 
 		if #entitiesToProcess > 0 then
 			local itemCounts = metatables.new("entityAsIndex")
-			totalItems = player:removeItems(item, totalItems, true, false, true)
+			totalItems = player:removeItems(item.name, totalItems, true, false, true,item.quality)
 
 			-- collect items from filtered entities
 			_(entitiesToProcess):each(function(entity)
 				local count = entity:itemcount(item)
 				local removed = 0
 				if count > 0 then
-					removed = entity.remove_item{ name = item, count = count }
+					removed = entity.remove_item{ name = item.name, count = count, quality = item.quality }
 					totalItems = totalItems + removed
 				end
 
@@ -143,7 +150,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 						local failedToInsert = amount - itemsInserted
 						if failedToInsert > 0 then
 							if itemCount.current ~= itemCount.original then
-								entity:spawnDistributionText(player,item, itemCount.current - itemCount.original, offY)
+								entity:spawnDistributionText(player,item.name, itemCount.current - itemCount.original, offY)
 								if not marked[entity] then
 									entity:mark(player)
 									marked[entity] = true
@@ -165,7 +172,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 				local itemCount = itemCounts[entity]
 				local amount = itemCount.current - itemCount.original
 				if amount ~= 0 then
-					entity:spawnDistributionText(player,item, amount, offY)
+					entity:spawnDistributionText(player,item.name, amount, offY)
 					if not marked[entity] then
 						entity:mark(player)
 						marked[entity] = true
@@ -174,7 +181,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 			end)
 
 			if totalItems > 0 then
-				player:returnItems(item, totalItems, false, true)
+				player:returnItems(item, totalItems, false, true,item.quality)
 			end
 
 			offY = offY - 0.5
@@ -189,7 +196,7 @@ function this.insert(player, entity, item, amount)
 	local dropToOutput = player:setting("dropTrashToOutput")
 
 	if entity.type == "furnace" and entity:recipe():isnot("valid") then
-		return entity:customInsert(player, item, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
+		return entity:customInsert(player, item.name, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
 			fuel     = true,
 			ammo     = false,
 			input    = false,
@@ -197,10 +204,10 @@ function this.insert(player, entity, item, amount)
 			modules  = false,
 			roboport = false,
 			main     = false,
-		})
+		},item.quality)
 
 	elseif entity:is("crafting machine") then
-		return entity:customInsert(player, item, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
+		return entity:customInsert(player, item.name, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
 			fuel     = true,
 			ammo     = false,
 			input    = entity:recipe():hasIngredient(item),
@@ -208,10 +215,10 @@ function this.insert(player, entity, item, amount)
 			modules  = false,
 			roboport = false,
 			main     = false,
-		})
+		},item.quality)
 
 	elseif entity.prototype.logistic_mode == "requester" then
-		return entity:customInsert(player, item, amount, false, true, false, useFuelLimit, useAmmoLimit, true, {
+		return entity:customInsert(player, item.name, amount, false, true, false, useFuelLimit, useAmmoLimit, true, {
 			fuel     = false,
 			ammo     = false,
 			input    = false,
@@ -219,10 +226,10 @@ function this.insert(player, entity, item, amount)
 			modules  = false,
 			roboport = false,
 			main     = true,
-		})
+		},item.quality)
 
 	elseif entity.type == "spider-vehicle" and entity.get_logistic_point(defines.logistic_member_index.character_requester) then
-		return entity:customInsert(player, item, amount, false, true, false, useFuelLimit, useAmmoLimit, true, {
+		return entity:customInsert(player, item.name, amount, false, true, false, useFuelLimit, useAmmoLimit, true, {
 			fuel     = true,
 			ammo     = true,
 			input    = false,
@@ -230,10 +237,10 @@ function this.insert(player, entity, item, amount)
 			modules  = false,
 			roboport = false,
 			main     = true,
-		})
+		},item.quality)
 		
 	elseif entity.type == "car" or entity.type == "spider-vehicle" then
-		return entity:customInsert(player, item, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
+		return entity:customInsert(player, item.name, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
 			fuel     = true,
 			ammo     = true,
 			input    = false,
@@ -241,11 +248,11 @@ function this.insert(player, entity, item, amount)
 			modules  = false,
 			roboport = false,
 			main     = false,
-		})
+		},item.quality)
 	end
 	
 	-- Default priority insertion
-	return entity:customInsert(player, item, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
+	return entity:customInsert(player, item.name, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
 		fuel     = true,
 		ammo     = true,
 		input    = true,
@@ -253,7 +260,7 @@ function this.insert(player, entity, item, amount)
 		modules  = false,
 		roboport = true,
 		main     = true,
-	}) 
+	},item.quality) 
 end
 
 function this.filterEntities(entities, item, dropToChests, dropToOutput)
