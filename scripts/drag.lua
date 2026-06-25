@@ -68,7 +68,7 @@ function this.distributeItems(player, cache)
 		end
 		
 		-- feedback
-		entity:spawnDistributionText(player,item, itemsInserted, 0, color)
+		entity:spawnDistributionText(player, item, quality,itemsInserted, 0, color)
 		-- player.play_sound{ path = "utility/inventory_move" }
 
 	end)
@@ -253,10 +253,9 @@ function this.onStackTransferred(entity, player, cache) -- handle vanilla drag s
 		collected = entity.remove_item{ name = item, count = cache.itemCount }
 	end
 
-	if cursor_stack.valid_for_read and cursor_stack.name ~= item then
-		-- other items in cursor
-		player:inventory().insert{ name = item, count = collected }
 
+	if cursor_stack.valid_for_read and (cursor_stack.name ~= item or cursor_stack.quality ~= quality) and collected > 0 then
+		player:inventory().insert{ name = item, count = collected, quality = quality }
 	else -- same items
 		-- collect cursor and transferred items temporarily
 		if cursor_stack.valid_for_read then

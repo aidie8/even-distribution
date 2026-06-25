@@ -61,7 +61,7 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 						local failedToInsert = amount - itemsInserted
 						if failedToInsert > 0 then
 							if itemCount.current ~= itemCount.original then
-								entity:spawnDistributionText(player,item, itemCount.current - itemCount.original, offY)
+								entity:spawnDistributionText(player,item.name,item.quality, itemCount.current - itemCount.original, offY)
 								if not marked[entity] then
 									entity:mark(player)
 									marked[entity] = true
@@ -78,7 +78,7 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 				local itemCount = itemCounts[entity]
 				local amount = itemCount.current - itemCount.original
 				if amount ~= 0 then
-					entity:spawnDistributionText(player,item, amount, offY)
+					entity:spawnDistributionText(player,item.name,item.quality, amount, offY)
 					if not marked[entity] then
 						entity:mark(player)
 						marked[entity] = true
@@ -143,7 +143,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 						local failedToInsert = amount - itemsInserted
 						if failedToInsert > 0 then
 							if itemCount.current ~= itemCount.original then
-								entity:spawnDistributionText(player,item, itemCount.current - itemCount.original, offY)
+								entity:spawnDistributionText(player,item.name, item.quality, itemCount.current - itemCount.original, offY)
 								if not marked[entity] then
 									entity:mark(player)
 									marked[entity] = true
@@ -165,7 +165,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 				local itemCount = itemCounts[entity]
 				local amount = itemCount.current - itemCount.original
 				if amount ~= 0 then
-					entity:spawnDistributionText(player,item, amount, offY)
+					entity:spawnDistributionText(player,item.name,item.quality, amount, offY)
 					if not marked[entity] then
 						entity:mark(player)
 						marked[entity] = true
@@ -203,7 +203,7 @@ function this.insert(player, entity, item, amount)
 		return entity:customInsert(player, item, amount, false, true, false, useFuelLimit, useAmmoLimit, false, {
 			fuel     = true,
 			ammo     = false,
-			input    = entity:recipe():hasIngredient(item),
+			input    = entity:recipe():hasIngredient(item,entity:recipeQuality()),
 			output   = dropToOutput and entity.type ~= "rocket-silo" and entity:recipe():hasProduct(item),
 			modules  = false,
 			roboport = false,
@@ -264,9 +264,12 @@ function this.filterEntities(entities, item, dropToChests, dropToOutput)
 		entity = _(entity)
 
 		if entity.can_insert(item) then
+			dlog("entity " .. entity.name)
+			dlog("Entity Type ".. entity.type)
 			if entity.burner and entity.burner.fuel_categories[prototype.fuel_category] and entity:inventory("fuel").can_insert(item) then
 				result[entity] = entity
-			elseif entity:is("crafting machine") and entity:recipe():hasIngredient(item) then
+			elseif entity:is("crafting machine") and entity:recipe():hasIngredient(item,entity:recipeQuality()) then
+				dlog("Success Crafting Machine recipe valid with valid input")
 				result[entity] = entity
 			elseif (entity.prototype.logistic_mode == "requester" or (entity.type == "spider-vehicle" and entity.get_logistic_point(defines.logistic_member_index.character_requester))) and entity:remainingRequest(item) > 0 then
 				result[entity] = entity

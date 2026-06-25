@@ -168,7 +168,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
             if replaceItems and limit > 0 then
                 for __,inferiorFuel in pairs(storage.fuelList[prototype.fuel_category]) do
                     if inferiorFuel.name == prototype.name or limit <= 0 then break end
-
+                    local stackQuality
                     local returnToPlayer = 0
                     while limit > 0 do
                         local stack = inv.find_item_stack(inferiorFuel.name)
@@ -177,13 +177,15 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
+                            stackQuality = stack.quality
                         else
+                            
                             break
                         end
                     end
 
                     if returnToPlayer > 0 then
-                        player:returnItems(inferiorFuel.name, returnToPlayer, takenFromCar, takenFromTrash)
+                        player:returnItems(inferiorFuel.name, returnToPlayer, takenFromCar, takenFromTrash,stackQuality)
                     end
                 end
             end

@@ -113,11 +113,20 @@ function this.unmark(cache) -- destroy all distribution markers of a player (usi
 	cache.markers = metatables.new("entityAsIndex")
 end
 
-function helpers:spawnDistributionText(player, item, amount, offY, color) -- spawn distribution text on entity
+function helpers:spawnDistributionText(player, item,quality, amount, offY, color) -- spawn distribution text on entity
 	local pos = self.position
+    local qualityText = ""
+    local leftbracket = ""
+    local rightbracket = ""
+    if quality ~= "normal" then
+        qualityText =prototypes.quality[quality].localised_name
+        leftbracket = " ("
+        rightbracket = ")"
+        end
+
 
     player.create_local_flying_text{ -- spawn text
-        text = {"", "       ", -amount, " ", prototypes.item[item].localised_name},
+        text = {"", "       ", -amount, " ", prototypes.item[item].localised_name,leftbracket,qualityText,rightbracket},
 		position = { pos.x - 0.5, pos.y + (offY or 0) },
 		color = color or config.colors.default
 	}
