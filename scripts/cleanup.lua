@@ -28,9 +28,10 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 	local offY, marked = 0, metatables.new("entityAsIndex")
 	
 	items:each(function(item, totalItems)
-
-		local entitiesToProcess = this.filterEntities(entities, item, dropToChests, dropToOutput)
 		
+		local entitiesToProcess = this.filterEntities(entities, item, dropToChests, dropToOutput)
+		dlog("Item ")
+		dlog(item)
 		if #entitiesToProcess > 0 then
 			local itemCounts = metatables.new("entityAsIndex")
 			totalItems = player:removeItems(item, totalItems, true, false, true)
@@ -99,7 +100,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 	local offY, marked = 0, metatables.new("entityAsIndex")
 
 	items:each(function(item, totalItems)
-
+		
 		local entitiesToProcess = this.filterEntities(entities, item, dropToChests, dropToOutput)
 
 		if #entitiesToProcess > 0 then
@@ -111,7 +112,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 				local count = entity:itemcount(item)
 				local removed = 0
 				if count > 0 then
-					removed = entity.remove_item{ name = item, count = count }
+					removed = entity.remove_item{ name = item.name, count = count,quality = item.qualty }
 					totalItems = totalItems + removed
 				end
 

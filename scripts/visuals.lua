@@ -30,7 +30,7 @@ local function getCountColor(count)
     end
 end
 
-function helpers:mark(player, item, quality, count) -- create highlight-box marker with item and count
+function helpers:mark(player, item, count) -- create highlight-box marker with item and count
     
     if item ~= nil then
 
@@ -61,7 +61,7 @@ function helpers:mark(player, item, quality, count) -- create highlight-box mark
                 y_scale = scale,
             },
             icon = rendering.draw_sprite{
-                sprite = getSprite(item),
+                sprite = getSprite(item.name),
                 render_layer = "selection-box",
                 target = {
                     entity = self:toPlain(),
@@ -73,7 +73,7 @@ function helpers:mark(player, item, quality, count) -- create highlight-box mark
                 y_scale = scale,
             },
             quality = rendering.draw_sprite{
-                sprite = getQualitySprite(quality),
+                sprite = getQualitySprite(item.quality),
                 render_layer = "selection-box",
                 target = {
                     entity = self:toPlain(),
@@ -111,10 +111,10 @@ function helpers:mark(player, item, quality, count) -- create highlight-box mark
     end
 end
 
-function this.update(marker, item, quality, count, color)
+function this.update(marker, item, count, color)
     if marker then
-        marker.icon.sprite = getSprite(item)
-        marker.quality.sprite = getQualitySprite(quality)
+        marker.icon.sprite = getSprite(item.name)
+        marker.quality.sprite = getQualitySprite(item.quality)
         marker.text.text = getShortCount(count)
         marker.text.color = color or getCountColor(count)
     end
@@ -136,11 +136,12 @@ function this.unmark(cache) -- destroy all distribution markers of a player (usi
 	cache.markers = metatables.new("entityAsIndex")
 end
 
-function helpers:spawnDistributionText(player, item,quality, amount, offY, color) -- spawn distribution text on entity
+function helpers:spawnDistributionText(player, item, amount, offY, color) -- spawn distribution text on entity
 	local pos = self.position
     local qualityText = ""
     local leftbracket = ""
     local rightbracket = ""
+    local quality = item.quality
     if quality ~= "normal" then
         qualityText =prototypes.quality[quality].localised_name
         leftbracket = " ("
@@ -149,7 +150,7 @@ function helpers:spawnDistributionText(player, item,quality, amount, offY, color
 
 
     player.create_local_flying_text{ -- spawn text
-        text = {"", "       ", -amount, " ", prototypes.item[item].localised_name,leftbracket,qualityText,rightbracket},
+        text = {"", "       ", -amount, " ", prototypes.item[item.name].localised_name,leftbracket,qualityText,rightbracket},
 		position = { pos.x - 0.5, pos.y + (offY or 0) },
 		color = color or config.colors.default
 	}

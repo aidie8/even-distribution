@@ -42,8 +42,8 @@ function control:logisticSlots() -- fetch all requests as a dict[name -> Compile
 
         if filters then
             _(filters):each(function(__, filter)
-                if filter and filter.name and (filter.quality == nil or filter.quality == "normal") then
-                    logisticSlots[filter.name] = filter
+                if filter and filter.name then
+                    logisticSlots[{filter.name,filter.quality}] = filter
                 end
             end)
         end
@@ -75,10 +75,10 @@ function control:inventory(name)
                (self.type == "rocket-silo" and self.get_inventory(defines.inventory.rocket_silo_rocket))
 
     elseif name == "input" then
-        return (self.type == "furnace" and self.get_inventory(defines.inventory.furnace_source)) or
-               (self.type == "assembling-machine" and self.get_inventory(defines.inventory.assembling_machine_input)) or
+               return (self.type == "furnace" and self.get_inventory(defines.inventory.crafter_input)) or
+               (self.type == "assembling-machine" and self.get_inventory(defines.inventory.crafter_input)) or
                (self.type == "lab" and self.get_inventory(defines.inventory.lab_input)) or
-               (self.type == "rocket-silo" and self.get_inventory(defines.inventory.assembling_machine_input))
+               (self.type == "rocket-silo" and self.get_inventory(defines.inventory.crafter_input))
     
     elseif name == "output" then
         return self.get_output_inventory()
@@ -117,9 +117,7 @@ function control:contents(name)
     local contents = inv.get_contents()
     local contents_converted = {}
     for __, content in pairs(contents) do
-        if content.quality == "normal" then
-            contents_converted[content.name] = content.count
-        end
+        contents_converted[{content.name,content.quality}] = content.count
     end
     return contents_converted
 end
@@ -129,9 +127,9 @@ local function insert(self, name, item, amount)
     local inv = self:inventory(name)
     if inv then
         -- inv.sort_and_merge()
-        local inserted = inv.insert{ name = item, count = amount }
+        local inserted = inv.insert{ name = item.name, count = amount,quality= item.quality }
         if inserted < amount then  -- retry for things like furnace ingredients (can be overfilled)
-            inserted = inserted + inv.insert{ name = item, count = amount - inserted }
+            inserted = inserted + inv.insert{ name = item.name, count = amount - inserted ,quality = item.quality}
         end
         return inserted
     end
@@ -143,7 +141,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
     if amount <= 0 then return 0 end
 
     local inserted = 0
-    local prototype = _(prototypes.item[item])
+    local prototype = _(prototypes.item[item.name])
 
     -- allow/disallow insertion into specific inventories by passing table with true/false values (default is allow)
     allowed = _({
@@ -168,16 +166,15 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
             if replaceItems and limit > 0 then
                 for __,inferiorFuel in pairs(storage.fuelList[prototype.fuel_category]) do
                     if inferiorFuel.name == prototype.name or limit <= 0 then break end
-                    local stackQuality
                     local returnToPlayer = 0
                     while limit > 0 do
-                        local stack = inv.find_item_stack(inferiorFuel.name)
+                        local stack = inv.find_item_stack(inferiorFuel)
                         local returnCount = stack and stack.count or 0
-                        if stack and stack.set_stack{ name = item, count = limit } then
+                        if stack and stack.set_stack{ name = item.name, count = limit,item.quality} then
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
-                            stackQuality = stack.quality
+                            inferiorFuel.quality = stack.quality
                         else
                             
                             break
@@ -185,7 +182,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                     end
 
                     if returnToPlayer > 0 then
-                        player:returnItems(inferiorFuel.name, returnToPlayer, takenFromCar, takenFromTrash,stackQuality)
+                        player:returnItems(inferiorFuel, returnToPlayer, takenFromCar, takenFromTrash)
                     end
                 end
             end
@@ -207,23 +204,24 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
             -- no space left --> replace inferior items
             if replaceItems and limit > 0 then
                 for __,inferiorAmmo in pairs(storage.ammoList[prototype.ammo_category.name]) do
-                    if inferiorAmmo.name == prototype.name or limit <= 0 then break end
+                    if (inferiorAmmo.name == prototype.name) or limit <= 0 then break end
 
                     local returnToPlayer = 0
                     while limit > 0 do
-                        local stack = inv.find_item_stack(inferiorAmmo.name)
+                        local stack = inv.find_item_stack(inferiorAmmo)
                         local returnCount = stack and stack.count or 0
-                        if stack and stack.set_stack{ name = item, count = limit } then
+                        if stack and stack.set_stack{ name = item.name, count = limit,item.quality } then
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
+                            inferiorAmmo.quality = stack.quality
                         else
                             break
                         end
                     end
                     
                     if returnToPlayer > 0 then
-                        player:returnItems(inferiorAmmo.name, returnToPlayer, takenFromCar, takenFromTrash)
+                        player:returnItems(inferiorAmmo, returnToPlayer, takenFromCar, takenFromTrash)
                     end
                 end
             end

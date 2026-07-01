@@ -39,15 +39,17 @@ function this.distributeItems(player, cache)
 	local totalItems   = player:itemcount(item, takeFromInv, takeFromCar)
 
 	if cache.half then totalItems = math.ceil(totalItems / 2) end
-
+	dlog("total Items on Insert " .. totalItems)
 	util.distribute(cache.entities, totalItems, function(entity, amount)
 
 		local itemsInserted = 0
 		local color
 		
 		if amount > 0 then
+			dlog("Item name ".. item.name)
+			dlog("Item quality ".. item.quality)
 			local takenFromPlayer = player:removeItems(item, amount, takeFromInv, takeFromCar, false)
-			
+			dlog("TakenFromPlayer " .. takenFromPlayer)
 			if takenFromPlayer < amount then color = config.colors.insufficientItems end
 			
 			if takenFromPlayer > 0 then
@@ -66,9 +68,9 @@ function this.distributeItems(player, cache)
 		else
 			color = config.colors.insufficientItems
 		end
-		
+		dlog("ON Insert Amount for each machine ".. itemsInserted)
 		-- feedback
-		entity:spawnDistributionText(player, item, quality,itemsInserted, 0, color)
+		entity:spawnDistributionText(player, item,itemsInserted, 0, color)
 		-- player.play_sound{ path = "utility/inventory_move" }
 
 	end)
@@ -95,7 +97,7 @@ function this.balanceItems(player, cache)
 		local count = _(entity):itemcount(item)
 		local removed = 0
 		if count > 0 then
-			removed = entity.remove_item{ name = item, count = count }
+			removed = entity.remove_item{ name = item.name, count = count,quality = item.quality }
 			totalItems = totalItems + removed
 		end
 
@@ -131,7 +133,7 @@ function this.balanceItems(player, cache)
 
 				local failedToInsert = amount - itemsInserted
 				if failedToInsert > 0 then
-					entity:spawnDistributionText(player,item, itemCount.current - itemCount.original, 0, config.colors.targetFull)
+					entity:spawnDistributionText(player,item.name, item.quality,itemCount.current - itemCount.original, 0, config.colors.targetFull)
 					entitiesToProcess[entity] = nil -- set nil while iterating bad?
 					return
 				end
@@ -147,7 +149,7 @@ function this.balanceItems(player, cache)
 	_(entitiesToProcess):each(function(entity)
 		local itemCount = itemCounts[entity]
 		local amount = itemCount.current - itemCount.original
-		_(entity):spawnDistributionText(player,item, amount, 0, (itemCount.current == 0) and config.colors.insufficientItems 
+		_(entity):spawnDistributionText(player,item.name,item.quality, amount, 0, (itemCount.current == 0) and config.colors.insufficientItems 
 																				   or config.colors.default)
 	end)
 
@@ -177,14 +179,11 @@ function this.on_selected_entity_changed(event)
 	local cache        = _(storage.cache[index])
 	local selected     = _(player.selected)    ; if selected:isnot("valid") or selected:isIgnored(player) then return end
 
-
-	if cursor_stack.quality.name ~= "normal" then return end -- TODO: Add support for quality
-
 	-- if not selected.can_insert{ name = cursor_stack.name, count = 1 } then return end
 	cache.selectedEvent = {
 		tick             = event.tick,
-		item             = cursor_stack.name,
-		itemCount        = selected:itemcount(cursor_stack.name),
+		item             = {name = cursor_stack.name,quality = cursor_stack.quality.name},
+		itemCount        = selected:itemcount({cursor_stack.name,cursor_stack.quality.name}),
 		cursorStackCount = cursor_stack.count,
 	}
 end
@@ -219,7 +218,7 @@ function this.onStackTransferred(entity, player, cache) -- handle vanilla drag s
 	local takeFromInv      = player:setting("takeFromInventory")
 	local takeFromCar      = player:setting("takeFromCar")
 	local distributionMode = player:setting("distributionMode")
-	local item = cache.item
+	local item = cache.item -- {name = {name}, quality = {quality}}
 	local first = #cache.entities > 0 and util.epairs(cache.entities)() or nil
 
 	if _(entity):is("valid") and not _(entity):isIgnored(player) and this.isEntityEligible(entity, item) and 
@@ -234,7 +233,8 @@ function this.onStackTransferred(entity, player, cache) -- handle vanilla drag s
 		
 		distrEvents[cache.applyTick] = distrEvents[cache.applyTick] or {}
 		distrEvents[cache.applyTick][player.index] = cache
-
+		
+		dlog("QULLLLITY " , item.quality)
 		if not cache.entities[entity] then
 			cache.markers[entity] = entity:mark(player, item)
 			cache.entities[entity] = entity
@@ -250,12 +250,12 @@ function this.onStackTransferred(entity, player, cache) -- handle vanilla drag s
 	local cursor_stack = player.cursor_stack
 
 	if cache.itemCount > 0 then
-		collected = entity.remove_item{ name = item, count = cache.itemCount }
+		collected = entity.remove_item{ name = item.name, count = cache.itemCount,item.quality}
 	end
 
 
-	if cursor_stack.valid_for_read and (cursor_stack.name ~= item or cursor_stack.quality ~= quality) and collected > 0 then
-		player:inventory().insert{ name = item, count = collected, quality = quality }
+	if cursor_stack.valid_for_read and (cursor_stack.name ~= item.name or cursor_stack.quality ~= item.quality) and collected > 0 then
+		player:inventory().insert{ name = item.name, count = collected, quality = item.quality }
 	else -- same items
 		-- collect cursor and transferred items temporarily
 		if cursor_stack.valid_for_read then
@@ -264,17 +264,17 @@ function this.onStackTransferred(entity, player, cache) -- handle vanilla drag s
 
 		-- fill cursor to previous amount
 		if collected < cache.cursorStackCount then
-			collected = collected + player:inventory().remove{ name = item, count = cache.cursorStackCount - collected }
+			collected = collected + player:inventory().remove{ name = item.name, count = cache.cursorStackCount - collected,quality = item.quality }
 		end
 		
 		if collected > 0 then
 			if collected < cache.cursorStackCount then
-				cursor_stack.set_stack{ name = item, count = collected }
+				cursor_stack.set_stack{ name = item.name, count = collected ,quality = item.quality }
 			else
-				cursor_stack.set_stack{ name = item, count = cache.cursorStackCount }
+				cursor_stack.set_stack{ name = item.name, count = cache.cursorStackCount,quality = item.quality }
 				collected = collected - cache.cursorStackCount
 				if collected > 0 then
-					player:inventory().insert{ name = item, count = collected }
+					player:inventory().insert{ name = item.name, count = collected,quality = item.quality }
 				end
 			end
 		end
@@ -283,7 +283,7 @@ function this.onStackTransferred(entity, player, cache) -- handle vanilla drag s
 	---- visuals ----
 	local totalItems  = player:itemcount(item, takeFromInv, takeFromCar)
 	if cache.half then totalItems = math.ceil(totalItems / 2) end
-
+	dlog('Total Items '.. totalItems)
 	if distributionMode == "balance" then
 		_(cache.entities):where("valid", function(entity)
 			totalItems = totalItems + _(entity):itemcount(item)
@@ -298,7 +298,7 @@ function this.onStackTransferred(entity, player, cache) -- handle vanilla drag s
 		-- 		return
 		-- 	end
 		-- end
-
+		dlog("Amount per Machine ".. amount)
 		visuals.update(cache.markers[entity], item, amount)
 	end)
 	
