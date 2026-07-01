@@ -89,7 +89,7 @@ function player:playercontents()
 	local cursor_stack = self.cursor_stack
 	
 	if cursor_stack and cursor_stack.valid_for_read then
-		local item = {cursor_stack.name,cursor_stack.quality}
+		local item = {cursor_stack.name,cursor_stack.quality.name}
 		contents[item] = (contents[item] or 0)+ cursor_stack.count
 	end
 		   
@@ -115,7 +115,7 @@ function player:removeItems(item, amount, takeFromInv, takeFromCar, takeFromTras
 	end
 	
 	local cursor_stack = self.cursor_stack
-	if cursor_stack and cursor_stack.valid_for_read and cursor_stack.name == item.name and cursor_stack.quality == item.quality then
+	if cursor_stack and cursor_stack.valid_for_read and cursor_stack.name == item.name and cursor_stack.quality.name == item.quality then
 		local result = math.min(cursor_stack.count, amount - removed)
 		removed = removed + result
 		cursor_stack.count = cursor_stack.count - result

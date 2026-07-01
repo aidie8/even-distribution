@@ -30,8 +30,7 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 	items:each(function(item, totalItems)
 		
 		local entitiesToProcess = this.filterEntities(entities, item, dropToChests, dropToOutput)
-		dlog("Item ")
-		dlog(item)
+
 		if #entitiesToProcess > 0 then
 			local itemCounts = metatables.new("entityAsIndex")
 			totalItems = player:removeItems(item, totalItems, true, false, true)
@@ -265,12 +264,10 @@ function this.filterEntities(entities, item, dropToChests, dropToOutput)
 		entity = _(entity)
 
 		if entity.can_insert(item) then
-			dlog("entity " .. entity.name)
-			dlog("Entity Type ".. entity.type)
+		
 			if entity.burner and entity.burner.fuel_categories[prototype.fuel_category] and entity:inventory("fuel").can_insert(item) then
 				result[entity] = entity
 			elseif entity:is("crafting machine") and entity:recipe():hasIngredient(item,entity:recipeQuality()) then
-				dlog("Success Crafting Machine recipe valid with valid input")
 				result[entity] = entity
 			elseif (entity.prototype.logistic_mode == "requester" or (entity.type == "spider-vehicle" and entity.get_logistic_point(defines.logistic_member_index.character_requester))) and entity:remainingRequest(item) > 0 then
 				result[entity] = entity

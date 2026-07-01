@@ -13,7 +13,7 @@ function control:request(item) -- fetch specific item request
 
         if filters then
             _(filters):each(function(__, filter)
-                if filter and filter.name == item and filter.count > count and (filter.quality == nil or filter.quality == "normal") then 
+                if filter and filter.name == item.name and filter.quality == item.quality and filter.count > count then 
                     count = math.max(count, filter.count)
                 end
             end)
@@ -117,7 +117,7 @@ function control:contents(name)
     local contents = inv.get_contents()
     local contents_converted = {}
     for __, content in pairs(contents) do
-        contents_converted[{content.name,content.quality}] = content.count
+        contents_converted[{content.name,content.quality.name}] = content.count
     end
     return contents_converted
 end
@@ -170,7 +170,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                     while limit > 0 do
                         local stack = inv.find_item_stack(inferiorFuel)
                         local returnCount = stack and stack.count or 0
-                        if stack and stack.set_stack{ name = item.name, count = limit,item.quality} then
+                        if stack and stack.set_stack{ name = item.name, count = limit,quality = item.quality} then
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
@@ -210,7 +210,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                     while limit > 0 do
                         local stack = inv.find_item_stack(inferiorAmmo)
                         local returnCount = stack and stack.count or 0
-                        if stack and stack.set_stack{ name = item.name, count = limit,item.quality } then
+                        if stack and stack.set_stack{ name = item.name, count = limit,quality = item.quality } then
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
