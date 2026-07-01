@@ -75,7 +75,7 @@ function control:inventory(name)
                (self.type == "rocket-silo" and self.get_inventory(defines.inventory.rocket_silo_rocket))
 
     elseif name == "input" then
-               return (self.type == "furnace" and self.get_inventory(defines.inventory.crafter_input)) or
+        return (self.type == "furnace" and self.get_inventory(defines.inventory.crafter_input)) or
                (self.type == "assembling-machine" and self.get_inventory(defines.inventory.crafter_input)) or
                (self.type == "lab" and self.get_inventory(defines.inventory.lab_input)) or
                (self.type == "rocket-silo" and self.get_inventory(defines.inventory.crafter_input))
