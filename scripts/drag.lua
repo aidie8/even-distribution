@@ -302,7 +302,7 @@ function this.onStackTransferred(entity, player, cache) -- handle vanilla drag s
 end
 
 function this.isEntityEligible(entity, item)
-	local prototype = prototypes.item[item]
+	local prototype = prototypes.item[item.name]
 	entity = _(entity)
 	
 	if entity.can_insert(item) then
