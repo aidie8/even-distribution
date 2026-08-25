@@ -75,7 +75,7 @@ function control:inventory(name)
                (self.type == "rocket-silo" and self.get_inventory(defines.inventory.rocket_silo_rocket))
 
     elseif name == "input" then
-        return (self.type == "furnace" and self.get_inventory(defines.inventory.crafter_input)) or
+               return (self.type == "furnace" and self.get_inventory(defines.inventory.crafter_input)) or
                (self.type == "assembling-machine" and self.get_inventory(defines.inventory.crafter_input)) or
                (self.type == "lab" and self.get_inventory(defines.inventory.lab_input)) or
                (self.type == "rocket-silo" and self.get_inventory(defines.inventory.crafter_input))
@@ -117,7 +117,7 @@ function control:contents(name)
     local contents = inv.get_contents()
     local contents_converted = {}
     for __, content in pairs(contents) do
-        contents_converted[{content.name,content.quality.name}] = content.count
+        contents_converted[{name = content.name,quality = content.quality}] = content.count
     end
     return contents_converted
 end
@@ -161,7 +161,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
 
             local insertedHere = insert(self, "fuel", item, limit)
             limit = limit - insertedHere
-
+            local quality
             -- no space left --> replace inferior items
             if replaceItems and limit > 0 then
                 for __,inferiorFuel in pairs(storage.fuelList[prototype.fuel_category]) do
@@ -174,7 +174,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
-                            inferiorFuel.quality = stack.quality
+                            quality = stack.quality
                         else
                             
                             break
@@ -182,7 +182,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                     end
 
                     if returnToPlayer > 0 then
-                        player:returnItems(inferiorFuel, returnToPlayer, takenFromCar, takenFromTrash)
+                        player:returnItems({name = inferiorFuel.name, quality = quality}, returnToPlayer, takenFromCar, takenFromTrash)
                     end
                 end
             end
@@ -200,7 +200,7 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
 
             local insertedHere = insert(self, "ammo", item, limit)
             limit = limit - insertedHere
-
+            local quality
             -- no space left --> replace inferior items
             if replaceItems and limit > 0 then
                 for __,inferiorAmmo in pairs(storage.ammoList[prototype.ammo_category.name]) do
@@ -214,14 +214,14 @@ function control:customInsert(player, item, amount, takenFromCar, takenFromTrash
                             limit = limit - stack.count
                             insertedHere = insertedHere + stack.count
                             returnToPlayer = returnToPlayer + returnCount
-                            inferiorAmmo.quality = stack.quality
+                            quality = stack.quality
                         else
                             break
                         end
                     end
                     
                     if returnToPlayer > 0 then
-                        player:returnItems(inferiorAmmo, returnToPlayer, takenFromCar, takenFromTrash)
+                        player:returnItems({name = inferiorAmmo.name,quality = quality}, returnToPlayer, takenFromCar, takenFromTrash)
                     end
                 end
             end

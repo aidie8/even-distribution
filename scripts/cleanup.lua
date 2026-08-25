@@ -61,7 +61,7 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 						local failedToInsert = amount - itemsInserted
 						if failedToInsert > 0 then
 							if itemCount.current ~= itemCount.original then
-								entity:spawnDistributionText(player,item.name,item.quality, itemCount.current - itemCount.original, offY)
+								entity:spawnDistributionText(player,item, itemCount.current - itemCount.original, offY)
 								if not marked[entity] then
 									entity:mark(player)
 									marked[entity] = true
@@ -78,7 +78,7 @@ function this.distributeItems(player, entities, items, dropToChests, dropToOutpu
 				local itemCount = itemCounts[entity]
 				local amount = itemCount.current - itemCount.original
 				if amount ~= 0 then
-					entity:spawnDistributionText(player,item.name,item.quality, amount, offY)
+					entity:spawnDistributionText(player,item, amount, offY)
 					if not marked[entity] then
 						entity:mark(player)
 						marked[entity] = true
@@ -143,7 +143,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 						local failedToInsert = amount - itemsInserted
 						if failedToInsert > 0 then
 							if itemCount.current ~= itemCount.original then
-								entity:spawnDistributionText(player,item.name, item.quality, itemCount.current - itemCount.original, offY)
+								entity:spawnDistributionText(player,item, itemCount.current - itemCount.original, offY)
 								if not marked[entity] then
 									entity:mark(player)
 									marked[entity] = true
@@ -165,7 +165,7 @@ function this.balanceItems(player, entities, items, dropToChests, dropToOutput)
 				local itemCount = itemCounts[entity]
 				local amount = itemCount.current - itemCount.original
 				if amount ~= 0 then
-					entity:spawnDistributionText(player,item.name,item.quality, amount, offY)
+					entity:spawnDistributionText(player,item, amount, offY)
 					if not marked[entity] then
 						entity:mark(player)
 						marked[entity] = true
@@ -258,7 +258,7 @@ end
 
 function this.filterEntities(entities, item, dropToChests, dropToOutput)
 	local result = metatables.new("entityAsIndex")
-	local prototype = prototypes.item[item]
+	local prototype = prototypes.item[item.name]
 	
 	_(entities):each(function(__, entity)
 		entity = _(entity)
